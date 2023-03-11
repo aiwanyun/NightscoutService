@@ -9,7 +9,7 @@
 import os.log
 import HealthKit
 import LoopKit
-import NightscoutUploadKit
+import NightscoutKit
 
 public enum NightscoutServiceError: Error {
     case incompatibleTherapySettings
@@ -46,14 +46,14 @@ public final class NightscoutService: Service {
     }
     private let lockedObjectIdCache: Locked<ObjectIdCache>
 
-    private var _uploader: NightscoutUploader?
+    private var _uploader: NightscoutClient?
 
-    private var uploader: NightscoutUploader? {
+    private var uploader: NightscoutClient? {
         if _uploader == nil {
             guard let siteURL = siteURL, let apiSecret = apiSecret else {
                 return nil
             }
-            _uploader = NightscoutUploader(siteURL: siteURL, APISecret: apiSecret)
+            _uploader = NightscoutClient(siteURL: siteURL, apiSecret: apiSecret)
         }
         return _uploader
     }
@@ -99,7 +99,7 @@ public final class NightscoutService: Service {
             return
         }
 
-        let uploader = NightscoutUploader(siteURL: siteURL, APISecret: apiSecret)
+        let uploader = NightscoutClient(siteURL: siteURL, apiSecret: apiSecret)
         uploader.checkAuth(completion)
     }
 
