@@ -6,7 +6,7 @@
 
 /* Name of pre-meal workout override
    Name uploaded to Nightscout for Pre-Meal override */
-"Pre-Meal" = "Pre-måltid";
+"Pre-Meal" = "Før måltid";
 
 /* Name of legacy workout override
    Name uploaded to Nightscout for legacy workout override */

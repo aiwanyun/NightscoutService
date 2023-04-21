@@ -35,7 +35,7 @@
 "Not Available" = "Ikke tilgjengelig (Nightscout url er ikke satt)";
 
 /* Description of ServiceStatus of checking */
-"OK" = "Ok";
+"OK" = "OK";
 
 /* No comment provided by engineer. */
 "One-Time Password" = "Engangspassord";
