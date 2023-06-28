@@ -26,9 +26,9 @@ extension ServiceStatus: CustomStringConvertible {
     public var description: String {
         switch self {
         case .checking:
-            return LocalizedString("Checking...", comment: "Description of ServiceStatus of checking")
+            return LocalizedString("检查...", comment: "Description of ServiceStatus of checking")
         case .normalOperation:
-            return LocalizedString("OK", comment: "Description of ServiceStatus of checking")
+            return LocalizedString("好的", comment: "Description of ServiceStatus of checking")
         case .error(let error):
             return error.localizedDescription
         }
@@ -42,7 +42,7 @@ class ServiceStatusViewModel: ObservableObject {
     var didLogout: (() -> Void)?
     
     var urlString: String {
-        return delegate.siteURL?.absoluteString ?? LocalizedString("Not Available", comment: "Error when nightscout service url is not set")
+        return delegate.siteURL?.absoluteString ?? LocalizedString("无法使用", comment: "Error when nightscout service url is not set")
     }
 
     init(delegate: ServiceStatusViewModelDelegate) {

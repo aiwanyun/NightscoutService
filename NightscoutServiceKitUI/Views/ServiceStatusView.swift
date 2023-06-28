@@ -36,7 +36,7 @@ struct ServiceStatusView: View, HorizontalSizeClassOverride {
                 .padding()
                 Divider()
                 HStack {
-                    Text("Status")
+                    Text("地位")
                     Spacer()
                     Text(String(describing: viewModel.status))
                 }
@@ -44,7 +44,7 @@ struct ServiceStatusView: View, HorizontalSizeClassOverride {
                 Divider()
                 NavigationLink(destination: OTPSelectionView(otpViewModel: otpViewModel), tag: "otp-view", selection: $selectedItem) {
                     HStack {
-                        Text("One-Time Password")
+                        Text("一次性密码")
                         Spacer()
                         Text(otpViewModel.otpCode)
                         Image(systemName: "chevron.right")
@@ -59,7 +59,7 @@ struct ServiceStatusView: View, HorizontalSizeClassOverride {
             Button(action: {
                 viewModel.didLogout?()
             } ) {
-                Text("Logout").padding(.top, 20)
+                Text("登出").padding(.top, 20)
             }
         }
         .padding([.leading, .trailing])
@@ -69,7 +69,7 @@ struct ServiceStatusView: View, HorizontalSizeClassOverride {
     
     private var dismissButton: some View {
         Button(action: dismiss) {
-            Text("Done").bold()
+            Text("完毕").bold()
         }
     }
 }

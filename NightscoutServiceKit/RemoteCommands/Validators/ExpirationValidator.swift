@@ -21,7 +21,7 @@ struct ExpirationValidator: RemoteCommandValidation {
         var errorDescription: String? {
             switch  self {
             case .expiredNotification:
-                return LocalizedString("Expired", comment: "Remote command error description: expired.")
+                return LocalizedString("已到期", comment: "Remote command error description: expired.")
             }
         }
     }

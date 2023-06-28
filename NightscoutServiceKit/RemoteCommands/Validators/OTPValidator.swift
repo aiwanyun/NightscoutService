@@ -22,7 +22,7 @@ struct OTPValidator: RemoteCommandValidation {
         var errorDescription: String? {
             switch  self {
             case .missingOTP:
-                return LocalizedString("Missing OTP", comment: "Remote command error description: Missing OTP.")
+                return LocalizedString("缺少OTP", comment: "Remote command error description: Missing OTP.")
             }
         }
     }

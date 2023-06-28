@@ -32,12 +32,12 @@ struct OTPSelectionView: View {
         }, label: {
             Image(systemName: "arrow.clockwise").imageScale(.large)
         }).alert(isPresented: $showingAlert) {
-            Alert(title: Text("Reset Secret Key"),
-                  message: Text("Are you sure you want to reset the secret key?"),
-                  primaryButton: .default(Text("OK"), action: {
+            Alert(title: Text("重置秘密密钥"),
+                  message: Text("您确定要重置秘密密钥吗？"),
+                  primaryButton: .default(Text("好的"), action: {
                     otpViewModel.resetSecretKey()
                   }),
-                  secondaryButton: .default(Text("Cancel")))
+                  secondaryButton: .default(Text("取消")))
         }
     }
     

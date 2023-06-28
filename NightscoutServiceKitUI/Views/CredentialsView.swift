@@ -21,7 +21,7 @@ struct CredentialsView: View, HorizontalSizeClassOverride {
     
     var body: some View {
         VStack {
-            Text(LocalizedString("Nightscout Login", comment: "Title on Nightscout CredentialsView"))
+            Text(LocalizedString("NightScout登录", comment: "Title on Nightscout CredentialsView"))
                 .font(.largeTitle)
                 .fontWeight(.semibold)
             Image(frameworkImage: "nightscout", decorative: true)
@@ -48,7 +48,7 @@ struct CredentialsView: View, HorizontalSizeClassOverride {
                 if self.viewModel.isVerifying {
                     ActivityIndicator(isAnimating: .constant(true), style: .medium)
                 } else {
-                    Text(LocalizedString("Login", comment: "Button text to login on Nightscout CredentialsView"))
+                    Text(LocalizedString("登录", comment: "Button text to login on Nightscout CredentialsView"))
                 }
             }
             .buttonStyle(ActionButtonStyle(.primary))
@@ -56,7 +56,7 @@ struct CredentialsView: View, HorizontalSizeClassOverride {
             
             if allowCancel {
                 Button(action: { self.viewModel.didCancel?() } ) {
-                    Text(LocalizedString("Cancel", comment: "Button text to cancel Nightscout credential input")).padding(.top, 20)
+                    Text(LocalizedString("取消", comment: "Button text to cancel Nightscout credential input")).padding(.top, 20)
                 }
             }
         }
