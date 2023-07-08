@@ -49,7 +49,7 @@ extension LoopKit.TemporaryScheduleOverride.Context {
         case .legacyWorkout:
             return LocalizedString("锻炼", comment: "Name uploaded to Nightscout for legacy workout override")
         case .preMeal:
-            return LocalizedString("预之前", comment: "Name uploaded to Nightscout for Pre-Meal override")
+            return LocalizedString("餐前模式", comment: "Name uploaded to Nightscout for Pre-Meal override")
         case .preset(let preset):
             return preset.name
         }
