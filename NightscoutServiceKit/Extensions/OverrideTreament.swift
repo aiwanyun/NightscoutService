@@ -31,9 +31,9 @@ extension OverrideTreatment {
         case .custom:
             reason = NSLocalizedString("自定义覆盖", comment: "Name of custom override")
         case .legacyWorkout:
-            reason = NSLocalizedString("锻炼", comment: "Name of legacy workout override")
+            reason = NSLocalizedString("Workout", comment: "Name of legacy workout override")
         case .preMeal:
-            reason = NSLocalizedString("餐前模式", comment: "Name of pre-meal workout override")
+            reason = NSLocalizedString("Pre-Meal", comment: "Name of pre-meal workout override")
         case .preset(let preset):
             reason = preset.symbol + " " + preset.name
         }

@@ -14,18 +14,21 @@ import NightscoutKit
 public enum NightscoutServiceError: Error {
     case incompatibleTherapySettings
     case missingCredentials
+    case missingCommandSource
 }
 
 
 public final class NightscoutService: Service {
 
-    public static let serviceIdentifier = "NightscoutService"
+    public static let pluginIdentifier = "NightscoutService"
 
     public static let localizedTitle = LocalizedString("Nightscout", comment: "The title of the Nightscout service")
     
     public let objectIdCacheKeepTime = TimeInterval(24 * 60 * 60)
 
     public weak var serviceDelegate: ServiceDelegate?
+    
+    public weak var stateDelegate: StatefulPluggableDelegate?
 
     public var siteURL: URL?
 
@@ -67,6 +70,7 @@ public final class NightscoutService: Service {
         self.lockedObjectIdCache = Locked(ObjectIdCache())
         self.otpManager = OTPManager(secretStore: KeychainManager())
         self.commandSourceV1 = RemoteCommandSourceV1(otpManager: otpManager)
+        self.commandSourceV1.delegate = self
     }
 
     public required init?(rawState: RawStateValue) {
@@ -82,6 +86,7 @@ public final class NightscoutService: Service {
         
         self.otpManager = OTPManager(secretStore: KeychainManager())
         self.commandSourceV1 = RemoteCommandSourceV1(otpManager: otpManager)
+        self.commandSourceV1.delegate = self
         
         restoreCredentials()
     }
@@ -115,17 +120,17 @@ public final class NightscoutService: Service {
         isOnboarded = true
 
         saveCredentials()
-        serviceDelegate?.serviceDidUpdateState(self)
+        stateDelegate?.pluginDidUpdateState(self)
     }
 
     public func completeUpdate() {
         saveCredentials()
-        serviceDelegate?.serviceDidUpdateState(self)
+        stateDelegate?.pluginDidUpdateState(self)
     }
 
     public func completeDelete() {
         clearCredentials()
-        serviceDelegate?.serviceWantsDeletion(self)
+        stateDelegate?.pluginWantsDeletion(self)
     }
 
     private func saveCredentials() {
@@ -207,7 +212,7 @@ extension NightscoutService: RemoteDataService {
                         self.objectIdCache.add(syncIdentifier: syncIdentifier, objectId: objectId)
                     }
                 }
-                self.serviceDelegate?.serviceDidUpdateState(self)
+                self.stateDelegate?.pluginDidUpdateState(self)
                 
                 uploader.updateCarbData(updated, usingObjectIdCache: self.objectIdCache) { result in
                     switch result {
@@ -220,7 +225,7 @@ extension NightscoutService: RemoteDataService {
                                 completion(.failure(error))
                             case .success(let deletedUploaded):
                                 self.objectIdCache.purge(before: Date().addingTimeInterval(-self.objectIdCacheKeepTime))
-                                self.serviceDelegate?.serviceDidUpdateState(self)
+                                self.stateDelegate?.pluginDidUpdateState(self)
                                 completion(.success(createdUploaded || updatedUploaded || deletedUploaded))
                             }
                         }
@@ -250,7 +255,7 @@ extension NightscoutService: RemoteDataService {
                         self.objectIdCache.add(syncIdentifier: syncIdentifier, objectId: objectId)
                     }
                 }
-                self.serviceDelegate?.serviceDidUpdateState(self)
+                self.stateDelegate?.pluginDidUpdateState(self)
 
                 uploader.deleteDoses(deleted.filter { !$0.isMutable }, usingObjectIdCache: self.objectIdCache) { result in
                     switch result {
@@ -258,7 +263,7 @@ extension NightscoutService: RemoteDataService {
                         completion(.failure(error))
                     case .success(let deletedUploaded):
                         self.objectIdCache.purge(before: Date().addingTimeInterval(-self.objectIdCacheKeepTime))
-                        self.serviceDelegate?.serviceDidUpdateState(self)
+                        self.stateDelegate?.pluginDidUpdateState(self)
                         completion(.success(createdUploaded || deletedUploaded))
                     }
                 }
@@ -321,6 +326,33 @@ extension NightscoutService: RemoteDataService {
     public var pumpEventDataLimit: Int? { return 1000 }
 
     public func uploadPumpEventData(_ stored: [PersistedPumpEvent], completion: @escaping (Result<Bool, Error>) -> Void) {
+
+        guard hasConfiguration, let uploader = uploader else {
+            completion(.success(true))
+            return
+        }
+
+        let source = "loop://\(UIDevice.current.name)"
+
+        let treatments = stored.compactMap { (event) -> NightscoutTreatment? in
+            // ignore doses; we'll get those via uploadDoseData
+            guard event.dose == nil else {
+                return nil
+            }
+            return event.treatment(source: source)
+        }
+
+        uploader.upload(treatments) { (result) in
+            switch result {
+            case .failure(let error):
+                self.log.error("Failed to upload pump events %{public}@: %{public}@", String(describing: treatments.map {$0.dictionaryRepresentation}), String(describing: error))
+                completion(.failure(error))
+            case .success:
+                self.log.debug("Uploaded overrides %@", String(describing: treatments.map {$0.dictionaryRepresentation}))
+                completion(.success(true))
+            }
+        }
+
         completion(.success(false))
     }
 
@@ -333,25 +365,6 @@ extension NightscoutService: RemoteDataService {
         }
 
         uploader.uploadProfiles(stored.compactMap { $0.profileSet }, completion: completion)
-    }
-    
-    
-    //MARK: Remote Commands
-    
-    public func commandFromPushNotification(_ notification: [String: AnyObject]) async throws -> RemoteCommand {
-        
-        enum RemoteCommandSourceError: Error {
-            case missingCommandSource
-        }
-        
-        let commandSource: RemoteCommandSource
-        if commandSourceV1.supportsPushNotification(notification) {
-            commandSource = commandSourceV1
-        } else {
-            throw RemoteCommandSourceError.missingCommandSource
-        }
-        
-        return try await commandSource.commandFromPushNotification(notification)
     }
     
     public func fetchStoredTherapySettings(completion: @escaping (Result<(TherapySettings,Date), Error>) -> Void) {
@@ -374,18 +387,87 @@ extension NightscoutService: RemoteDataService {
             }
         })
     }
-    
-    enum NotificationValidationError: LocalizedError {
-        case missingOTP
-        
-        var errorDescription: String? {
-            switch self {
-            case .missingOTP:
-                return "Error: Password is required."
-            }
+
+    public func uploadCgmEventData(_ stored: [LoopKit.PersistedCgmEvent], completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard hasConfiguration, let uploader = uploader else {
+            completion(.success(true))
+            return
         }
+
+        uploader.uploadCgmEvents(stored, completion: completion)
     }
 
+    
+    public func remoteNotificationWasReceived(_ notification: [String: AnyObject]) async throws {
+        let commandSource = try commandSource(notification: notification)
+        await commandSource.remoteNotificationWasReceived(notification)
+    }
+    
+    private func commandSource(notification: [String: AnyObject]) throws -> RemoteCommandSource {
+        return commandSourceV1
+    }
+
+}
+
+extension NightscoutService: RemoteCommandSourceV1Delegate {
+    
+    func commandSourceV1(_: RemoteCommandSourceV1, handleAction action: Action) async throws {
+        
+        switch action {
+        case .temporaryScheduleOverride(let overrideCommand):
+            try await self.serviceDelegate?.enactRemoteOverride(
+                name: overrideCommand.name,
+                durationTime: overrideCommand.durationTime,
+                remoteAddress: overrideCommand.remoteAddress
+            )
+        case .cancelTemporaryOverride:
+            try await self.serviceDelegate?.cancelRemoteOverride()
+        case .bolusEntry(let bolusCommand):
+            try await self.serviceDelegate?.deliverRemoteBolus(amountInUnits: bolusCommand.amountInUnits)
+        case .carbsEntry(let carbCommand):
+            try await self.serviceDelegate?.deliverRemoteCarbs(
+                amountInGrams: carbCommand.amountInGrams,
+                absorptionTime: carbCommand.absorptionTime,
+                foodType: carbCommand.foodType,
+                startDate: carbCommand.startDate
+            )
+        }
+    }
+    
+    func commandSourceV1(_: RemoteCommandSourceV1, uploadError error: Error, notification: [String: AnyObject]) async throws {
+        
+        guard let uploader = self.uploader else {throw NightscoutServiceError.missingCredentials}
+        var commandDescription = "Loop Remote Action Error"
+        if let remoteNotification = try? notification.toRemoteNotification() {
+            commandDescription = remoteNotification.toRemoteAction().description
+        }
+        
+        let notificationJSON = try JSONSerialization.data(withJSONObject: notification)
+        let notificationJSONString = String(data: notificationJSON, encoding: .utf8) ?? ""
+        
+        let noteBody = """
+        \(error.localizedDescription)
+        \(notificationJSONString)
+        """
+
+        let treatment = NightscoutTreatment(
+            timestamp: Date(),
+            enteredBy: commandDescription,
+            notes: noteBody,
+            eventType: .note
+        )
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            uploader.upload([treatment], completionHandler: { result in
+                switch result {
+                case .success:
+                    continuation.resume()
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            })
+        }
+    }
 }
 
 extension KeychainManager {

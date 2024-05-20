@@ -36,7 +36,7 @@ struct ServiceStatusView: View, HorizontalSizeClassOverride {
                 .padding()
                 Divider()
                 HStack {
-                    Text("地位")
+                    Text("状态")
                     Spacer()
                     Text(String(describing: viewModel.status))
                 }
